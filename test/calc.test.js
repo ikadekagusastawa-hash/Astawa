@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { summarize, upcoming, topUp, seasonality } from '../public/calc.js';
+import { summarize, upcoming, topUp, seasonality, watchRows, performance, simulate, taxReport, zakat } from '../public/calc.js';
 
 const DAY = 864e5, YEAR = 365 * DAY;
 const now = Date.UTC(2026, 10, 7);
@@ -61,10 +61,53 @@ test('seasonality puts last year payout in its month', () => {
   assert.equal(months.reduce((t, x) => t + x.amount, 0), 1000 * 120 * 0.9);
 });
 
-test('top-up buys whole lots of safe stocks only', () => {
-  const s = summarize([{ ticker: 'AAAA', lots: 1, avg: 800 }, { ticker: 'BBBB', lots: 100, avg: 500 }], stocks, settings, now);
-  s.rows.find((r) => r.ticker === 'AAAA').level = 0;
-  const { plan, left } = topUp(s, 250_000);
+test('top-up buys whole lots of safe candidates only, incl. watchlist', () => {
+  const s = summarize([{ ticker: 'BBBB', lots: 100, avg: 500 }], stocks, settings, now);
+  const w = watchRows(['AAAA', 'BBBB', 'ZZZZ'], stocks, now); // ZZZZ has no data -> skipped
+  assert.deepEqual(w.map((r) => [r.ticker, r.status]), [['AAAA', 'aman'], ['BBBB', 'bahaya']]);
+  const { plan, left } = topUp([...s.rows, w[0]], 250_000, 0.9);
   assert.deepEqual(plan.map((p) => [p.ticker, p.lots]), [['AAAA', 2]]);
   assert.equal(left, 50_000);
+  assert.equal(plan[0].monthly, (200_000 * 0.12 * 0.9) / 12);
+});
+
+test('performance: unrealized + realized + dividends', () => {
+  const s = summarize(holdings, stocks, settings, now);
+  const tx = [
+    { type: 'jual', ticker: 'AAAA', lots: 5, price: 1200, avg: 800, date: '2026-01-01' },
+    { type: 'dividen', ticker: 'AAAA', amount: 100_000, tax: 10_000, date: '2026-05-01' },
+    { type: 'beli', ticker: 'AAAA', lots: 1, price: 900, date: '2026-02-01' },
+  ];
+  const p = performance(s, tx, { price: 110, price1y: 100 });
+  assert.equal(p.realized, 400 * 500);
+  assert.equal(p.dividends, 90_000);
+  assert.equal(p.unrealized, s.value - s.cost);
+  assert.equal(p.totalPct, p.total / (s.cost + 800 * 500));
+  assert.ok(Math.abs(p.ihsg1y - 0.1) < 1e-9);
+  assert.equal(p.price1y, s.value / (1000 * 1000 + 1000 * 1000) - 1); // BBBB was 1000
+});
+
+test('simulate: reaches target, more top-up is never slower', () => {
+  const base = { income: 12_000_000, y: 0.1, g: 0.03, keep: 0.9, drip: true, target: 5_000_000 };
+  const a = simulate({ ...base, topup: 1_000_000 });
+  const b = simulate({ ...base, topup: 5_000_000 });
+  assert.ok(a.hit > 0 && b.hit > 0 && b.hit <= a.hit);
+  assert.equal(simulate({ ...base, topup: 0, target: 900_000 }).hit, 0); // already there
+  assert.equal(simulate({ ...base, topup: 0, y: 0, g: 0, drip: false }).hit, null); // never
+  assert.equal(a.years[0].invested, 12_000_000);
+  // no top-up, no growth, no drip: income stays flat
+  assert.equal(simulate({ ...base, topup: 0, g: 0, drip: false }).years[4].monthly, 900_000);
+});
+
+test('tax report and zakat', () => {
+  const tx = [
+    { type: 'dividen', ticker: 'AAAA', amount: 100, tax: 10, date: '2026-05-01' },
+    { type: 'dividen', ticker: 'AAAA', amount: 50, tax: 5, date: '2026-11-01' },
+    { type: 'dividen', ticker: 'BBBB', amount: 70, tax: 7, date: '2025-05-01' },
+  ];
+  const r = taxReport(tx, '2026');
+  assert.deepEqual(r.rows, [{ ticker: 'AAAA', gross: 150, tax: 15 }]);
+  assert.equal(r.gross, 150);
+  assert.deepEqual(zakat(100, 0, 2), { nisab: 170, base: 100, wajib: false, amount: 0 });
+  assert.equal(zakat(1000, 200, 2).amount, 30);
 });

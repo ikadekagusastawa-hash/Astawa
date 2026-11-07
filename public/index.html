@@ -25,7 +25,7 @@
   button { background:var(--text); color:#111; border:0; border-radius:8px; padding:7px 13px; font-weight:600; cursor:pointer; }
   button.ghost { background:transparent; color:var(--mute); border:1px solid var(--line); }
   button:disabled { opacity:.5; cursor:wait; }
-  input { background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:7px 9px; width:100%; }
+  input, select { background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:7px 9px; width:100%; }
   .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px; margin-bottom:14px; }
   .card h2 { font-size:15px; margin:0 0 12px; } .card h2 small { color:var(--mute); font-weight:400; font-size:12px; margin-left:6px; }
   .hero { background:radial-gradient(circle at 80% 0%, #3a2a12 0%, var(--card) 60%); display:grid; grid-template-columns:1fr 1.1fr; gap:20px; }
@@ -41,6 +41,7 @@
   .track { height:10px; background:var(--card2); border-radius:99px; overflow:hidden; margin:8px 0; }
   .track i { display:block; height:100%; background:linear-gradient(90deg,var(--green),var(--acc)); }
   .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .grid3 { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
   .stat { background:var(--card2); border-radius:10px; padding:12px 14px; }
   .stat b { display:block; font-size:24px; margin:4px 0 2px; }
   .up { color:var(--green); } .down { color:var(--red); } .acc { color:var(--acc); }
@@ -67,7 +68,7 @@
     .app { grid-template-columns:1fr; }
     nav { border-right:0; border-bottom:1px solid var(--line); display:flex; overflow-x:auto; gap:4px; padding:10px; }
     .brand { display:none; } nav a { white-space:nowrap; }
-    main { padding:12px; } .hero, .grid2 { grid-template-columns:1fr; } .big { font-size:34px; }
+    main { padding:12px; } .hero, .grid2, .grid3 { grid-template-columns:1fr; } .big { font-size:34px; }
   }
 </style>
 </head>
@@ -77,7 +78,11 @@
     <div class="brand"><div class="logo"></div><div><b>Dividen <span>Astawa</span></b><small>PENDAPATAN PASIF</small></div></div>
     <a href="#ringkasan">Ringkasan</a>
     <a href="#portofolio">Portofolio</a>
+    <a href="#watchlist">Watchlist</a>
     <a href="#fund">Fund Manager</a>
+    <a href="#transaksi">Transaksi & Kinerja</a>
+    <a href="#simulasi">Simulasi</a>
+    <a href="#pajak">Pajak & Zakat</a>
     <a href="#kalender">Pengumuman BEI</a>
     <a href="#pengaturan">Pengaturan</a>
   </nav>

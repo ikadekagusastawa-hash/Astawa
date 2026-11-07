@@ -17,7 +17,7 @@ export function analyze(h, s, now = Date.now()) {
   const prev = sumDps(s.dividends, now - 2 * YEAR, now - YEAR);
   const old5 = sumDps(s.dividends, now - 6 * YEAR, now - 5 * YEAR);
   return {
-    ticker: h.ticker, name: s.name, lots: h.lots, shares, avg: h.avg, price: s.price,
+    ticker: h.ticker, name: s.name, lots: h.lots, shares, avg: h.avg, price: s.price, price1y: s.price1y,
     cost: shares * h.avg, value: shares * s.price,
     ttm, prev,
     yield: s.price ? ttm / s.price : 0,
@@ -102,9 +102,16 @@ export function upcoming(sum, stocks, announcements, now = Date.now(), horizon =
   return out.sort((a, b) => a.date - b.date);
 }
 
-// Split new cash over the 3 highest-yield "aman" holdings, weighted by yield, in whole lots.
-export function topUp(sum, cash) {
-  const plan = sum.rows
+// Watchlist candidates, judged by the same rules (no position, so no concentration flag).
+export const watchRows = (watchlist, stocks, now = Date.now()) =>
+  watchlist.filter((t) => stocks[t]).map((t) => {
+    const a = analyze({ ticker: t, lots: 0, avg: 0 }, stocks[t], now);
+    return Object.assign(a, safety(a, 0));
+  });
+
+// Split new cash over the 3 highest-yield "aman" candidates, weighted by yield, in whole lots.
+export function topUp(candidates, cash, keep) {
+  const plan = candidates
     .filter((r) => r.level === 0 && r.yield > 0 && r.price > 0)
     .sort((a, b) => b.yield - a.yield)
     .slice(0, 3)
@@ -116,7 +123,62 @@ export function topUp(sum, cash) {
   for (const p of plan) while (left >= lotCost(p)) { p.lots++; left -= lotCost(p); }
   for (const p of plan) {
     p.cost = p.lots * lotCost(p);
-    p.monthly = (p.cost * p.yield * sum.keep) / 12;
+    p.monthly = (p.cost * p.yield * keep) / 12;
   }
   return { plan: plan.filter((p) => p.lots), left };
+}
+
+// Total return = unrealized + realized (from sells) + net dividends received (from the log).
+export function performance(sum, transactions, ihsg) {
+  const sells = transactions.filter((t) => t.type === 'jual');
+  const realized = sells.reduce((s, t) => s + (t.price - t.avg) * t.lots * LOT, 0);
+  const soldCost = sells.reduce((s, t) => s + t.avg * t.lots * LOT, 0);
+  const dividends = transactions.filter((t) => t.type === 'dividen').reduce((s, t) => s + t.amount - t.tax, 0);
+  const unrealized = sum.value - sum.cost;
+  const total = unrealized + realized + dividends;
+  const base = sum.cost + soldCost;
+  // "if you had held today's portfolio for the last 12 months"
+  const value1y = sum.rows.reduce((s, r) => s + r.shares * (r.price1y || r.price), 0);
+  return {
+    realized, unrealized, dividends, total,
+    totalPct: base ? total / base : null,
+    price1y: value1y ? sum.value / value1y - 1 : null,
+    withDiv1y: value1y ? (sum.value + sum.income * sum.keep) / value1y - 1 : null,
+    ihsg1y: ihsg?.price1y ? ihsg.price / ihsg.price1y - 1 : null,
+  };
+}
+
+// Monthly model: top-up (+ net dividends if reinvested) buys new income at yield y;
+// existing dividends grow by g once a year. Prices are assumed flat.
+export function simulate({ income, topup, y, g, keep, drip, target, maxYears = 40 }) {
+  let I = income, invested = 0;
+  let hit = (I * keep) / 12 >= target ? 0 : null;
+  const years = [];
+  for (let m = 1; m <= maxYears * 12; m++) {
+    invested += topup;
+    I += (topup + (drip ? (I * keep) / 12 : 0)) * y;
+    if (m % 12 === 0) { I *= 1 + g; years.push({ year: m / 12, invested, monthly: (I * keep) / 12 }); }
+    if (hit === null && (I * keep) / 12 >= target) hit = m;
+  }
+  return { hit, years };
+}
+
+// Dividends received in a year, per stock (for the SPT).
+export function taxReport(transactions, year) {
+  const by = {};
+  for (const t of transactions)
+    if (t.type === 'dividen' && t.date.startsWith(year)) {
+      const r = (by[t.ticker] ??= { ticker: t.ticker, gross: 0, tax: 0 });
+      r.gross += t.amount;
+      r.tax += t.tax;
+    }
+  const rows = Object.values(by).sort((a, b) => b.gross - a.gross);
+  return { rows, gross: rows.reduce((s, r) => s + r.gross, 0), tax: rows.reduce((s, r) => s + r.tax, 0) };
+}
+
+// Zakat saham: 2.5% of market value + cash dividends, once that reaches nisab (85 g gold).
+export function zakat(value, dividends, goldPerGram) {
+  const nisab = 85 * goldPerGram;
+  const base = value + dividends;
+  return { nisab, base, wajib: base >= nisab, amount: base >= nisab ? base * 0.025 : 0 };
 }

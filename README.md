@@ -1,8 +1,14 @@
 # Dividen Astawa
 
-Dashboard pendapatan pasif dari dividen saham BEI: berapa dividen per bulan, progres ke target,
-yield, yield on cost, pertumbuhan dividen, jadwal panen berikutnya, pemeriksaan "fund manager",
-dan penyusun top-up per lot.
+Dashboard pendapatan pasif dari dividen saham BEI:
+
+- **Ringkasan**: dividen bersih per bulan, progres ke target, yield, yield on cost, pertumbuhan dividen, panen berikutnya.
+- **Portofolio** dan **Watchlist** (kandidat saham dengan status aman/pantau/bahaya).
+- **Fund Manager**: pemeriksaan dividen berbasis aturan, Analisis AI opsional, top-up per lot ke saham "aman" (portofolio + watchlist).
+- **Transaksi & Kinerja**: catat beli/jual/dividen; total return (belum + sudah direalisasi + dividen) dan pembanding IHSG 1 tahun.
+- **Simulasi**: kapan target tercapai dengan top-up bulanan, skenario pesimis/dasar/optimis.
+- **Pajak & Zakat**: rekap dividen per tahun untuk SPT, daftar harta saham, dan zakat saham (nisab 85 gram emas).
+- **Pengumuman BEI**: jadwal dividen resmi yang diinput manual.
 
 ## Jalankan
 
@@ -23,7 +29,7 @@ Data tersimpan di `data/portfolio.json` di PC Anda.
 
 | Data | Sumber | Catatan |
 |---|---|---|
-| Harga, nama emiten, riwayat dividen 10 tahun | Yahoo Finance (otomatis, cache 15 menit) | Gratis, tanpa API key. Tanggal dividen = ex-date. Tidak membedakan dividen reguler vs spesial. |
+| Harga, nama emiten, riwayat dividen 10 tahun, IHSG, harga emas dunia & kurs USD/IDR | Yahoo Finance (otomatis, cache 15 menit) | Gratis, tanpa API key. Tanggal dividen = ex-date. Tidak membedakan dividen reguler vs spesial. |
 | Jadwal dividen resmi (cum/bayar) | BEI / KSEI, diinput manual di menu **Pengumuman BEI** | BEI tidak punya API publik dan memblokir akses otomatis (Cloudflare). |
 | Analisis AI | Claude + web search | Opsional, berbayar per pemakaian (lihat bawah). |
 
@@ -46,6 +52,13 @@ Fallback server-side (`fallbacks: "default"`) aktif: jika model menolak perminta
 - **aman**: selain itu. Top-up hanya dibagi ke 3 saham "aman" dengan yield tertinggi.
 
 Ini alat bantu hitung, bukan nasihat investasi.
+
+## Catatan perhitungan
+
+- Transaksi **beli/jual** langsung mengubah lot dan harga rata-rata di Portofolio. Menghapus catatan transaksi tidak membatalkan perubahan itu; koreksi lot di Portofolio.
+- **Simulasi** mengasumsikan harga dan yield saham yang dibeli tetap, tanpa fee broker. Pesimis/optimis = pertumbuhan dividen ±3 poin persen.
+- **Zakat** memakai harga emas dunia (lebih rendah dari harga emas Antam); bisa diganti manual. Ada pendapat ulama lain tentang zakat saham.
+- **Pajak**: perlakuan pajak dividen bisa berubah; cek ketentuan DJP terbaru.
 
 ## Tes
 

@@ -10,17 +10,17 @@ const PUB = join(ROOT, 'public');
 const DATA_DIR = join(ROOT, 'data');
 const DATA = join(DATA_DIR, 'portfolio.json');
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css' };
-const EMPTY = { settings: { target: 20_000_000, tax: 0.1 }, holdings: [], announcements: [] };
+const EMPTY = { settings: { target: 20_000_000, tax: 0.1 }, holdings: [], announcements: [], watchlist: [], transactions: [] };
 
 const fail = (status, message) => Object.assign(new Error(message), { status });
 const TICKER = /^[A-Z0-9]{2,6}$/;
 
-// ---- Yahoo Finance (price + 10y dividend history), cached 15 min per ticker ----
+// ---- Yahoo Finance (price + 10y dividend history), cached 15 min per symbol ----
 const cache = new Map();
-async function stock(ticker) {
-  const hit = cache.get(ticker);
+async function yahoo(symbol, ticker = symbol) {
+  const hit = cache.get(symbol);
   if (hit && Date.now() - hit.at < 15 * 60_000) return hit.data;
-  const res = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}.JK?range=10y&interval=1mo&events=div`);
+  const res = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=10y&interval=1mo&events=div`);
   const j = await res.json().catch(() => null);
   const r = j?.chart?.result?.[0];
   if (!r) throw fail(res.status === 404 ? 404 : 502, j?.chart?.error?.description || `Yahoo HTTP ${res.status}`);
@@ -37,8 +37,14 @@ async function stock(ticker) {
       .map((d) => ({ date: d.date * 1000, amount: d.amount }))
       .sort((a, b) => a.date - b.date),
   };
-  cache.set(ticker, { at: Date.now(), data });
+  cache.set(symbol, { at: Date.now(), data });
   return data;
+}
+
+// IHSG for performance comparison; world gold price in Rp/gram for the zakat nisab.
+async function market() {
+  const [ihsg, gold, usd] = await Promise.all([yahoo('^JKSE', 'IHSG'), yahoo('GC=F'), yahoo('IDR=X')]);
+  return { ihsg, goldPerGram: (gold.price * usd.price) / 31.1035 };
 }
 
 // ---- Portfolio file: validated, written atomically so a crash can't corrupt it ----
@@ -54,18 +60,28 @@ function clean(d) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(v) || isNaN(Date.parse(v))) throw fail(400, `Tanggal tidak valid: ${v}`);
     return v;
   };
-  if (!d || typeof d !== 'object' || !Array.isArray(d.holdings) || !Array.isArray(d.announcements)) throw fail(400, 'Format data salah');
+  const list = (v) => { if (v === undefined) return []; if (!Array.isArray(v)) throw fail(400, 'Format data salah'); return v; };
+  const tx = (t) => {
+    const base = { date: date(t.date, true), ticker: tick(t.ticker), type: t.type };
+    if (t.type === 'beli') return { ...base, lots: num(t.lots), price: num(t.price) };
+    if (t.type === 'jual') return { ...base, lots: num(t.lots), price: num(t.price), avg: num(t.avg) };
+    if (t.type === 'dividen') return { ...base, amount: num(t.amount), tax: num(t.tax) };
+    throw fail(400, `Jenis transaksi tidak valid: ${t.type}`);
+  };
+  if (!d || typeof d !== 'object') throw fail(400, 'Format data salah');
   return {
     settings: { target: num(d.settings?.target), tax: num(d.settings?.tax, 1) },
-    holdings: d.holdings.map((h) => ({ ticker: tick(h.ticker), lots: num(h.lots), avg: num(h.avg) })),
-    announcements: d.announcements.map((a) => ({
+    holdings: list(d.holdings).map((h) => ({ ticker: tick(h.ticker), lots: num(h.lots), avg: num(h.avg) })),
+    announcements: list(d.announcements).map((a) => ({
       ticker: tick(a.ticker), amount: num(a.amount), cum: date(a.cum, true), pay: date(a.pay),
     })),
+    watchlist: [...new Set(list(d.watchlist).map(tick))],
+    transactions: list(d.transactions).map(tx),
   };
 }
 
 async function load() {
-  try { return JSON.parse(await readFile(DATA, 'utf8')); }
+  try { return { ...EMPTY, ...JSON.parse(await readFile(DATA, 'utf8')) }; }
   catch (e) { if (e.code === 'ENOENT') return EMPTY; throw e; }
 }
 
@@ -128,7 +144,8 @@ http.createServer(async (req, res) => {
       return send(res, 200, d);
     }
     let m = pathname.match(/^\/api\/stock\/([A-Z0-9]{2,6})$/);
-    if (m && req.method === 'GET') return send(res, 200, await stock(m[1]));
+    if (m && req.method === 'GET') return send(res, 200, await yahoo(`${m[1]}.JK`, m[1]));
+    if (pathname === '/api/market' && req.method === 'GET') return send(res, 200, await market());
     m = pathname.match(/^\/api\/ai\/([A-Z0-9]{2,6})$/);
     if (m && req.method === 'POST') {
       const p = await body(req, 50_000);
