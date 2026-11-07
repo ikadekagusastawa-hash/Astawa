@@ -12,7 +12,11 @@ Dashboard pendapatan pasif dari dividen saham BEI:
 
 ## Jalankan
 
-Butuh [Node.js](https://nodejs.org) 18 atau lebih baru.
+**Windows, cara paling mudah:** install [Node.js](https://nodejs.org) versi LTS, lalu double-click
+`Jalankan.bat` (browser terbuka otomatis). Untuk membuka dari HP di Wi-Fi yang sama, pakai
+`Jalankan-untuk-HP.bat`; alamat yang harus dibuka di HP akan ditampilkan.
+
+Cara manual (Windows/Mac/Linux, Node.js 18 atau lebih baru):
 
 ```bash
 npm install      # hanya untuk fitur Analisis AI; dashboard jalan tanpa ini
