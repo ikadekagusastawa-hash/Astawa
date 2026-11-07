@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dividen Astawa</title>
+<style>
+  :root { --bg:#0e0f12; --card:#16181d; --card2:#1d2027; --line:#262a32; --text:#e9eaee; --mute:#8b909a;
+          --acc:#f5a524; --green:#3ecf8e; --red:#f06767; --yellow:#f5c84c; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .app { display:grid; grid-template-columns:210px 1fr; min-height:100vh; }
+  nav { border-right:1px solid var(--line); padding:18px 12px; }
+  .brand { display:flex; gap:10px; align-items:center; margin:0 6px 22px; }
+  .logo { width:30px; height:30px; border-radius:9px; background:linear-gradient(135deg,#f7b733,#fc4a1a); }
+  .brand b { font-size:16px; } .brand b span { color:var(--acc); }
+  .brand small { display:block; color:var(--mute); font-size:9px; letter-spacing:.15em; }
+  nav a { display:block; padding:8px 10px; border-radius:8px; color:var(--mute); text-decoration:none; margin-bottom:2px; }
+  nav a.on { background:var(--card2); color:var(--text); font-weight:600; }
+  main { padding:16px 22px 40px; max-width:1200px; width:100%; min-width:0; }
+  header { display:flex; align-items:center; gap:10px; margin-bottom:16px; }
+  header h1 { font-size:20px; margin:0; flex:1; }
+  .pill { font-size:12px; color:var(--mute); border:1px solid var(--line); border-radius:99px; padding:4px 10px; }
+  .pill::before { content:"●"; color:var(--green); margin-right:5px; }
+  button { background:var(--text); color:#111; border:0; border-radius:8px; padding:7px 13px; font-weight:600; cursor:pointer; }
+  button.ghost { background:transparent; color:var(--mute); border:1px solid var(--line); }
+  button:disabled { opacity:.5; cursor:wait; }
+  input { background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:7px 9px; width:100%; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px; margin-bottom:14px; }
+  .card h2 { font-size:15px; margin:0 0 12px; } .card h2 small { color:var(--mute); font-weight:400; font-size:12px; margin-left:6px; }
+  .hero { background:radial-gradient(circle at 80% 0%, #3a2a12 0%, var(--card) 60%); display:grid; grid-template-columns:1fr 1.1fr; gap:20px; }
+  .label { color:var(--acc); font-size:11px; letter-spacing:.15em; font-weight:700; }
+  .big { font-size:46px; font-weight:800; letter-spacing:-.02em; margin:6px 0 2px; }
+  .big sup { font-size:18px; color:var(--acc); } .big small { font-size:16px; color:var(--mute); font-weight:500; }
+  .mute { color:var(--mute); font-size:12px; }
+  .bars { display:flex; align-items:flex-end; gap:6px; height:110px; }
+  .bars div { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; }
+  .bars i { display:block; width:100%; background:#4a4d55; border-radius:4px 4px 0 0; min-height:2px; }
+  .bars i.off { background:var(--acc); } .bars span { font-size:10px; color:var(--mute); margin-top:4px; }
+  .progress { grid-column:1/-1; }
+  .track { height:10px; background:var(--card2); border-radius:99px; overflow:hidden; margin:8px 0; }
+  .track i { display:block; height:100%; background:linear-gradient(90deg,var(--green),var(--acc)); }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .stat { background:var(--card2); border-radius:10px; padding:12px 14px; }
+  .stat b { display:block; font-size:24px; margin:4px 0 2px; }
+  .up { color:var(--green); } .down { color:var(--red); } .acc { color:var(--acc); }
+  .chip { display:inline-block; font-size:11px; font-weight:700; padding:2px 7px; border-radius:5px; margin:2px; }
+  .chip.aman, .chip.up { background:#123524; color:var(--green); }
+  .chip.pantau { background:#3a3112; color:var(--yellow); }
+  .chip.bahaya, .chip.down { background:#3a1616; color:var(--red); }
+  .chip.resmi { background:#123524; color:var(--green); } .chip.perkiraan { background:var(--line); color:var(--mute); }
+  .scroll { display:flex; gap:10px; overflow-x:auto; padding-bottom:6px; }
+  .harvest { min-width:170px; background:var(--card2); border-radius:10px; padding:12px; border-top:3px solid var(--acc); }
+  .harvest b { font-size:16px; } .harvest .amt { font-size:16px; font-weight:700; margin:6px 0; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th, td { text-align:right; padding:8px 6px; border-bottom:1px solid var(--line); white-space:nowrap; }
+  th { color:var(--mute); font-weight:500; font-size:12px; }
+  th:first-child, td:first-child { text-align:left; white-space:normal; min-width:160px; }
+  td input { width:90px; padding:4px 6px; text-align:right; }
+  .wrap { overflow-x:auto; }
+  .form { display:flex; gap:8px; flex-wrap:wrap; align-items:end; margin-top:12px; }
+  .form label { font-size:12px; color:var(--mute); flex:1; min-width:110px; }
+  .ai { white-space:pre-wrap; background:var(--card2); border-radius:8px; padding:10px; margin-top:6px; text-align:left; font-size:13px; }
+  .err { color:var(--red); font-size:12px; }
+  a { color:var(--acc); }
+  @media (max-width:800px) {
+    .app { grid-template-columns:1fr; }
+    nav { border-right:0; border-bottom:1px solid var(--line); display:flex; overflow-x:auto; gap:4px; padding:10px; }
+    .brand { display:none; } nav a { white-space:nowrap; }
+    main { padding:12px; } .hero, .grid2 { grid-template-columns:1fr; } .big { font-size:34px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <nav>
+    <div class="brand"><div class="logo"></div><div><b>Dividen <span>Astawa</span></b><small>PENDAPATAN PASIF</small></div></div>
+    <a href="#ringkasan">Ringkasan</a>
+    <a href="#portofolio">Portofolio</a>
+    <a href="#fund">Fund Manager</a>
+    <a href="#kalender">Pengumuman BEI</a>
+    <a href="#pengaturan">Pengaturan</a>
+  </nav>
+  <main>
+    <header>
+      <h1 id="title">Ringkasan</h1>
+      <span class="pill" id="live">Memuat…</span>
+      <button class="ghost" id="refresh">Perbarui</button>
+    </header>
+    <div id="view"></div>
+  </main>
+</div>
+<script type="module" src="app.js"></script>
+</body>
+</html>
